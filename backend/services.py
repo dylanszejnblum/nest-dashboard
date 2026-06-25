@@ -160,3 +160,68 @@ async def get_news() -> dict:
               "updated": datetime.now(timezone.utc).isoformat()}
     _set("news", result)
     return result
+
+
+WMO = {
+    0: ("Clear", "☀️"), 1: ("Mainly clear", "🌤️"), 2: ("Partly cloudy", "⛅"),
+    3: ("Overcast", "☁️"), 45: ("Fog", "🌫️"), 48: ("Rime fog", "🌫️"),
+    51: ("Light drizzle", "🌦️"), 53: ("Drizzle", "🌦️"), 55: ("Heavy drizzle", "🌦️"),
+    56: ("Freezing drizzle", "🌧️"), 57: ("Freezing drizzle", "🌧️"),
+    61: ("Light rain", "🌧️"), 63: ("Rain", "🌧️"), 65: ("Heavy rain", "🌧️"),
+    66: ("Freezing rain", "🌧️"), 67: ("Freezing rain", "🌧️"),
+    71: ("Light snow", "🌨️"), 73: ("Snow", "🌨️"), 75: ("Heavy snow", "❄️"),
+    77: ("Snow grains", "🌨️"), 80: ("Rain showers", "🌦️"), 81: ("Rain showers", "🌧️"),
+    82: ("Violent showers", "⛈️"), 85: ("Snow showers", "🌨️"), 86: ("Snow showers", "❄️"),
+    95: ("Thunderstorm", "⛈️"), 96: ("Thunderstorm", "⛈️"), 99: ("Thunderstorm", "⛈️"),
+}
+
+
+def _wmo(code):
+    label, icon = WMO.get(int(code), ("—", "🌡️"))
+    return {"label": label, "icon": icon}
+
+
+async def get_weather() -> dict:
+    cached = _get("weather", 600)
+    if cached is not None:
+        return cached
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": -34.6037, "longitude": -58.3816,
+        "current": "temperature_2m,relative_humidity_2m,apparent_temperature,"
+                   "weather_code,wind_speed_10m",
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,"
+                 "precipitation_probability_max",
+        "timezone": "America/Argentina/Buenos_Aires", "forecast_days": 7,
+    }
+    try:
+        async with httpx.AsyncClient(headers={"User-Agent": UA}, follow_redirects=True) as client:
+            data = (await client.get(url, params=params, timeout=12)).json()
+        cur = data["current"]
+        daily = data["daily"]
+        w = _wmo(cur["weather_code"])
+        days = []
+        for i, d in enumerate(daily["time"]):
+            dw = _wmo(daily["weather_code"][i])
+            days.append({
+                "date": d, "max": round(daily["temperature_2m_max"][i]),
+                "min": round(daily["temperature_2m_min"][i]),
+                "precip": daily["precipitation_probability_max"][i] or 0,
+                "label": dw["label"], "icon": dw["icon"],
+            })
+        result = {
+            "city": "Buenos Aires",
+            "current": {
+                "temp": round(cur["temperature_2m"]),
+                "feels": round(cur["apparent_temperature"]),
+                "humidity": cur["relative_humidity_2m"],
+                "wind": round(cur["wind_speed_10m"]),
+                "label": w["label"], "icon": w["icon"],
+            },
+            "daily": days,
+            "updated": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception:
+        result = {"city": "Buenos Aires", "current": None, "daily": [], "error": True}
+    _set("weather", result)
+    return result

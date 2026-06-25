@@ -1,7 +1,7 @@
 import { Globe } from "./globe.js";
-import { fetchAssets, fetchNews } from "./data.js";
+import { fetchAssets, fetchNews, fetchWeather } from "./data.js";
 import {
-  renderClock, renderAssets, renderMonthCalendar,
+  renderClock, renderAssets, renderMonthCalendar, renderWeather,
   setFeaturedPool, cycleFeatured, renderTicker,
 } from "./panels.js";
 
@@ -42,11 +42,17 @@ async function refreshNews() {
   setFeaturedPool(d.headlines || []);
   renderTicker(d.headlines || []);
 }
+async function refreshWeather() {
+  const d = await fetchWeather();
+  if (d) renderWeather(d);
+}
 
 refreshAssets();
 refreshNews();
+refreshWeather();
 setInterval(refreshAssets, 1000 * 60);
 setInterval(refreshNews, 1000 * 60 * 5);
+setInterval(refreshWeather, 1000 * 60 * 10);
 setInterval(cycleFeatured, 1000 * 9);
 
 window.addEventListener("resize", () => globe && globe.resize());

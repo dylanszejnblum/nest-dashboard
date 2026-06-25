@@ -11,3 +11,4 @@ async function getJSON(url) {
 
 export const fetchAssets = () => getJSON("/api/assets");
 export const fetchNews = () => getJSON("/api/news");
+export const fetchWeather = () => getJSON("/api/weather");

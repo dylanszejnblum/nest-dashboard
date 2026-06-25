@@ -39,6 +39,32 @@ export function renderAssets(assets) {
     .join("");
 }
 
+export function renderWeather(data) {
+  const card = $("weather-card");
+  if (!data || data.error || !data.current) {
+    card.style.display = "none";
+    return;
+  }
+  const c = data.current;
+  $("w-temp").innerHTML = `${c.temp}° <span class="w-icon">${c.icon}</span>`;
+  $("w-meta").textContent = `${c.label} · ${c.wind} km/h · ${c.humidity}%`;
+  const today = new Date().getDay();
+  const dow = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  $("weather-week").innerHTML = (data.daily || [])
+    .map((d) => {
+      const dt = new Date(d.date + "T12:00:00");
+      const label = isNaN(dt) ? "" : dow[dt.getDay()];
+      return `
+      <div class="w-day">
+        <span class="w-dow">${label}</span>
+        <span class="w-di">${d.icon}</span>
+        <span class="w-hi">${d.max}°</span>
+        <span class="w-lo">${d.min}°</span>
+      </div>`;
+    })
+    .join("");
+}
+
 export function renderMonthCalendar() {
   const now = new Date();
   const year = now.getFullYear();
