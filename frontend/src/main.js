@@ -6,14 +6,22 @@ import {
 } from "./panels.js";
 
 const canvas = document.getElementById("globe-canvas");
-const globe = new Globe(canvas);
+let globe = null;
+try {
+  globe = new Globe(canvas);
+} catch (e) {
+  console.warn("WebGL globe unavailable on this device — running panels only", e);
+  canvas.style.display = "none";
+}
 
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  globe.update(dt, now);
-  globe.render();
+  if (globe) {
+    globe.update(dt, now);
+    globe.render();
+  }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
@@ -30,7 +38,7 @@ async function refreshAssets() {
 async function refreshNews() {
   const d = await fetchNews();
   if (!d) return;
-  globe.setPoints(d.points || []);
+  if (globe) globe.setPoints(d.points || []);
   setFeaturedPool(d.headlines || []);
   renderTicker(d.headlines || []);
 }
@@ -41,4 +49,4 @@ setInterval(refreshAssets, 1000 * 60);
 setInterval(refreshNews, 1000 * 60 * 5);
 setInterval(cycleFeatured, 1000 * 9);
 
-window.addEventListener("resize", () => globe.resize());
+window.addEventListener("resize", () => globe && globe.resize());

@@ -46,6 +46,21 @@
       </footer>
     </div>
 
+    <script src="https://www.gstatic.com/cast/sdk/receiver/cast_receiver_framework.js"></script>
+    <script>
+      (function () {
+        function start() {
+          try {
+            if (window.cast && cast.framework) {
+              cast.framework.CastReceiverContext.getInstance()
+                .start({ disableIdleTimeout: true });
+            }
+          } catch (e) { console.warn("cast receiver start failed", e); }
+        }
+        if (window.cast && cast.framework) start();
+        else window.addEventListener("load", start);
+      })();
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
