@@ -1,0 +1,16 @@
+# node / build
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# python
+backend/__pycache__/
+*.pyc
+.venv/
+venv/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
