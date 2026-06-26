@@ -9,12 +9,9 @@
   </head>
   <body>
     <div id="app">
-      <canvas id="globe-canvas"></canvas>
-
-      <div class="vignette"></div>
-
       <aside class="panel col-left">
         <header class="clock-block">
+          <div class="greeting" id="greeting">Hello</div>
           <div class="clock" id="clock">--:--</div>
           <div class="date" id="date">—</div>
           <div class="mkstatus" id="mkstatus"></div>
@@ -25,6 +22,24 @@
           <div class="market-list" id="market-list"></div>
         </section>
 
+        <section class="card dolar" id="dolar-card">
+          <h2>Dólar (ARS)</h2>
+          <div class="dolar-grid" id="dolar-grid"></div>
+        </section>
+      </aside>
+
+      <main class="col-center">
+        <section class="card map-card">
+          <div class="map-head">
+            <span class="dot live"></span>
+            <span class="kicker">LIVE WORLD</span>
+            <span class="map-count" id="map-count"></span>
+          </div>
+          <canvas id="map-canvas"></canvas>
+        </section>
+      </main>
+
+      <aside class="panel col-right">
         <section class="card weather" id="weather-card">
           <h2>Buenos Aires</h2>
           <div class="w-current">
@@ -32,13 +47,6 @@
             <div class="w-meta" id="w-meta">loading…</div>
           </div>
           <div class="w-week" id="weather-week"></div>
-        </section>
-      </aside>
-
-      <aside class="panel col-right">
-        <section class="card dolar" id="dolar-card">
-          <h2>Dólar (ARS)</h2>
-          <div class="dolar-grid" id="dolar-grid"></div>
         </section>
 
         <section class="card featured" id="featured">

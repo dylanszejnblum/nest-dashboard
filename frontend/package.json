@@ -8,10 +8,6 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "dependencies": {
-    "three": "^0.185.0",
-    "three-globe": "^2.45.2"
-  },
   "devDependencies": {
     "vite": "^5.4.0"
   }

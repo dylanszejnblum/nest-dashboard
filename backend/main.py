@@ -1,6 +1,7 @@
 """FastAPI app: serves the built frontend + data API."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -18,6 +19,11 @@ app = FastAPI(title="Nest Dashboard")
 @app.get("/api/health")
 async def health():
     return {"ok": True}
+
+
+@app.get("/api/config")
+def config():
+    return {"name": os.getenv("NAME", "Dylan")}
 
 
 @app.get("/api/assets")

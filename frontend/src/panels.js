@@ -12,6 +12,17 @@ export function renderClock() {
   });
 }
 
+let _name = "Dylan";
+export async function renderGreeting() {
+  try {
+    const r = await fetch("/api/config");
+    if (r.ok) _name = (await r.json()).name || _name;
+  } catch (e) { /* keep default */ }
+  const h = new Date().getHours();
+  const part = h < 6 ? "Buenas noches" : h < 12 ? "Buenos días" : h < 20 ? "Buenas tardes" : "Buenas noches";
+  $("greeting").textContent = `${part}, ${_name}`;
+}
+
 export function renderAssets(assets) {
   const list = $("market-list");
   list.innerHTML = (assets || [])
