@@ -1,7 +1,8 @@
 import { Globe } from "./globe.js";
-import { fetchAssets, fetchNews, fetchWeather } from "./data.js";
+import { fetchAssets, fetchNews, fetchWeather, fetchDolar, fetchFlights } from "./data.js";
 import {
-  renderClock, renderAssets, renderMonthCalendar, renderWeather,
+  renderClock, renderAssets, renderMonthCalendar, renderWeather, renderDolar,
+  renderMarketStatus,
   setFeaturedPool, cycleFeatured, renderTicker,
 } from "./panels.js";
 
@@ -28,8 +29,10 @@ requestAnimationFrame(loop);
 
 renderClock();
 renderMonthCalendar();
+renderMarketStatus();
 setInterval(renderClock, 1000 * 10);
 setInterval(renderMonthCalendar, 1000 * 60 * 30);
+setInterval(renderMarketStatus, 1000 * 60);
 
 async function refreshAssets() {
   const d = await fetchAssets();
@@ -38,7 +41,7 @@ async function refreshAssets() {
 async function refreshNews() {
   const d = await fetchNews();
   if (!d) return;
-  if (globe) globe.setPoints(d.points || []);
+  if (globe) globe.setNews(d.points || []);
   setFeaturedPool(d.headlines || []);
   renderTicker(d.headlines || []);
 }
@@ -46,13 +49,26 @@ async function refreshWeather() {
   const d = await fetchWeather();
   if (d) renderWeather(d);
 }
+async function refreshDolar() {
+  const d = await fetchDolar();
+  if (d) renderDolar(d);
+}
+async function refreshFlights() {
+  const d = await fetchFlights();
+  if (d && globe) globe.setFlights(d.flights || []);
+}
 
 refreshAssets();
 refreshNews();
 refreshWeather();
-setInterval(refreshAssets, 1000 * 60);
+refreshDolar();
+refreshFlights();
+setInterval(refreshAssets, 1000 * 60);     // backend caches; cheap
 setInterval(refreshNews, 1000 * 60 * 5);
 setInterval(refreshWeather, 1000 * 60 * 10);
+setInterval(refreshDolar, 1000 * 60 * 5);
+setInterval(refreshFlights, 1000 * 25);
+setInterval(cycleFeatured, 1000 * 9);
 setInterval(cycleFeatured, 1000 * 9);
 
 window.addEventListener("resize", () => globe && globe.resize());

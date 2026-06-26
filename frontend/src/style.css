@@ -168,6 +168,28 @@ html, body {
 .w-hi { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .w-lo { font-size: 10px; color: var(--fg-mute); font-variant-numeric: tabular-nums; }
 
+.mkstatus {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px; padding: 3px 9px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  background: rgba(80,180,255,0.06); border: 1px solid var(--glass-line);
+}
+.mkstatus .mkdot { width: 7px; height: 7px; border-radius: 50%; }
+.mkstatus.open { color: var(--up); }
+.mkstatus.open .mkdot { background: var(--up); box-shadow: 0 0 8px var(--up); }
+.mkstatus.closed { color: var(--fg-mute); }
+.mkstatus.closed .mkdot { background: var(--down); opacity: 0.7; }
+
+.dolar-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px;
+}
+.d-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 4px 0; border-bottom: 1px solid rgba(80,180,255,0.05);
+}
+.d-label { font-size: 11.5px; color: var(--fg-dim); font-weight: 500; }
+.d-val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

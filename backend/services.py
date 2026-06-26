@@ -34,6 +34,7 @@ ASSETS = [
     ("^VIX", "VIX"),
     ("EWZ", "Brazil"),
     ("YPF", "YPF"),
+    ("ARS=X", "USD/ARS"),
 ]
 
 
@@ -47,15 +48,17 @@ async def _yahoo_chart(client: httpx.AsyncClient, symbol: str, name: str) -> dic
         r.raise_for_status()
         data = r.json()["chart"]["result"][0]
         meta = data["meta"]
-        quotes = data["indicators"]["quote"][0]["close"]
-        closes = [c for c in quotes if c is not None]
-        if not closes:
+        price = meta.get("regularMarketPrice")
+        if price is None:
             return None
-        price = meta.get("regularMarketPrice") or closes[-1]
-        prev = meta.get("chartPreviousClose") or meta.get("previousClose") or closes[0]
+        q = (data.get("indicators", {}).get("quote") or [{}])[0]
+        series = q.get("close") or q.get("open") or q.get("adjclose") or []
+        closes = [c for c in series if c is not None]
+        prev = meta.get("chartPreviousClose") or meta.get("previousClose")
+        if not prev and closes:
+            prev = closes[0]
         change = round((price - prev) / prev * 100, 2) if prev else None
-        step = max(1, len(closes) // 40)
-        spark = closes[::step]
+        spark = closes[:: max(1, len(closes) // 40)] if closes else [price]
         return {
             "symbol": symbol.replace("^", ""), "name": name,
             "price": price, "change": change, "spark": spark,
@@ -68,11 +71,12 @@ async def get_assets() -> list[dict]:
     cached = _get("assets", 60)
     if cached is not None:
         return cached
+    out: list[dict] = []
     async with httpx.AsyncClient(headers={"User-Agent": UA}, follow_redirects=True) as client:
-        results = await asyncio.gather(
-            *[_yahoo_chart(client, sym, name) for sym, name in ASSETS]
-        )
-    out = [r for r in results if r]
+        for sym, name in ASSETS:  # sequential to avoid Yahoo rate-limiting
+            r = await _yahoo_chart(client, sym, name)
+            if r:
+                out.append(r)
     _set("assets", out)
     return out
 
@@ -159,6 +163,68 @@ async def get_news() -> dict:
     result = {"points": points, "headlines": headlines,
               "updated": datetime.now(timezone.utc).isoformat()}
     _set("news", result)
+    return result
+
+
+DOLAR_KEYS = [
+    ("oficial", "Oficial"), ("blue", "Blue"), ("bolsa", "MEP"),
+    ("contadoconliqui", "CCL"), ("tarjeta", "Tarjeta"),
+]
+
+
+async def get_dolar() -> dict:
+    cached = _get("dolar", 300)
+    if cached is not None:
+        return cached
+    try:
+        async with httpx.AsyncClient(headers={"User-Agent": UA}, follow_redirects=True) as client:
+            data = (await client.get("https://dolarapi.com/v1/dolares", timeout=12)).json()
+        by_casa = {x["casa"]: x for x in data}
+        rates = []
+        for casa, label in DOLAR_KEYS:
+            x = by_casa.get(casa)
+            if x:
+                rates.append({
+                    "key": casa, "label": label,
+                    "compra": x.get("compra"), "venta": x.get("venta"),
+                })
+        result = {"rates": rates, "updated": datetime.now(timezone.utc).isoformat()}
+    except Exception:
+        result = {"rates": [], "error": True}
+    _set("dolar", result)
+    return result
+
+
+async def get_flights() -> dict:
+    cached = _get("flights", 30)
+    if cached is not None:
+        return cached
+    try:
+        async with httpx.AsyncClient(headers={"User-Agent": UA}, follow_redirects=True) as client:
+            r = await client.get(
+                "https://opensky-network.org/api/states/all",
+                params={"lamin": -60, "lomin": -130, "lamax": 60, "lomax": -30},
+                timeout=15,
+            )
+            d = r.json()
+        flights = []
+        for s in d.get("states") or []:
+            lat, lon = s[6], s[5]
+            if lat is None or lon is None:
+                continue
+            flights.append({
+                "icao": s[0],
+                "callsign": (s[1] or "").strip(),
+                "lat": round(lat, 3), "lon": round(lon, 3),
+                "alt": round(s[13] or s[7] or 0),
+                "vel": round(s[9] or 0), "heading": round(s[10] or 0),
+            })
+        flights.sort(key=lambda f: f["icao"])
+        result = {"flights": flights[:120],
+                  "updated": datetime.now(timezone.utc).isoformat()}
+    except Exception:
+        result = {"flights": [], "error": True}
+    _set("flights", result)
     return result
 
 

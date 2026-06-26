@@ -65,6 +65,36 @@ export function renderWeather(data) {
     .join("");
 }
 
+export function renderDolar(data) {
+  const card = $("dolar-card");
+  if (!data || data.error || !data.rates || !data.rates.length) {
+    card.style.display = "none";
+    return;
+  }
+  $("dolar-grid").innerHTML = data.rates.map((r) => `
+    <div class="d-row">
+      <span class="d-label">${r.label}</span>
+      <span class="d-val">$${r.venta ? r.venta.toFixed(0) : "—"}</span>
+    </div>`).join("");
+}
+
+export function renderMarketStatus() {
+  const el = $("mkstatus");
+  if (!el) return;
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York", weekday: "short",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map((p) => [p.type, p.value]));
+  const wd = parts.weekday;
+  const mins = parseInt(parts.hour, 10) * 60 + parseInt(parts.minute, 10);
+  const weekend = wd === "Sat" || wd === "Sun";
+  const inSession = mins >= 570 && mins < 960; // 9:30–16:00 ET
+  const open = !weekend && inSession;
+  el.className = "mkstatus " + (open ? "open" : "closed");
+  el.innerHTML = `<span class="mkdot"></span>NYSE ${open ? "OPEN" : "CLOSED"}`;
+}
+
 export function renderMonthCalendar() {
   const now = new Date();
   const year = now.getFullYear();

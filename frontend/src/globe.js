@@ -113,11 +113,18 @@ export class Globe {
       .arcDashInitialGap(() => Math.random())
       .arcDashAnimateTime(2200)
       .arcStroke(0.35);
+
+    this.tg.pointsTransitionDuration(16000);
+    this.tg.pointsData([])
+      .pointAltitude(0.012)
+      .pointColor(() => "#7fe3ff")
+      .pointRadius(0.22)
+      .pointResolution(6);
   }
 
-  setPoints(points) {
+  setNews(points) {
     if (!points || !points.length) {
-      this.tg.pointsData([]).ringsData([]).arcsData([]);
+      this.tg.ringsData([]).arcsData([]);
       return;
     }
     const counts = points.map((p) => p.count || 1);
@@ -130,14 +137,10 @@ export class Globe {
       return {
         lat: p.lat, lng: p.lon, count: p.count || 1,
         color: n > 0.5 ? POINT_HOT : POINT_COOL,
-        radius: 0.35 + n * 0.7,
         maxR: 2 + n * 4,
       };
     });
-    this.tg.pointsData(data)
-      .pointLat("lat").pointLng("lon");
-    this.tg.ringsData(data)
-      .ringLat("lat").ringLng("lon");
+    this.tg.ringsData(data).ringLat("lat").ringLng("lon");
 
     const sorted = [...points].sort((a, b) => (b.count || 1) - (a.count || 1));
     const hubs = sorted.slice(0, Math.min(2, sorted.length));
@@ -147,6 +150,11 @@ export class Globe {
       startLat: h.lat, startLng: h.lon, endLat: t.lat, endLng: t.lon,
     })));
     this.tg.arcsData(arcs);
+  }
+
+  setFlights(flights) {
+    const data = (flights || []).map((f) => ({ lat: f.lat, lng: f.lon }));
+    this.tg.pointsData(data).pointLat("lat").pointLng("lon");
   }
 
   _bindEvents() {

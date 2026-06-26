@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from services import get_assets, get_news, get_weather
+from services import get_assets, get_news, get_weather, get_dolar, get_flights
 
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT.parent / "frontend" / "dist"
@@ -33,6 +33,16 @@ async def news():
 @app.get("/api/weather")
 async def weather():
     return JSONResponse(await get_weather())
+
+
+@app.get("/api/dolar")
+async def dolar():
+    return JSONResponse(await get_dolar())
+
+
+@app.get("/api/flights")
+async def flights():
+    return JSONResponse(await get_flights())
 
 
 if DIST.exists():
