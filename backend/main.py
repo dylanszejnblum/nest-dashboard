@@ -12,8 +12,15 @@ from services import get_assets, get_news, get_weather, get_dolar, get_flights
 
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT.parent / "frontend" / "dist"
+DEVICE_HTML = ROOT / "device.html"
 
 app = FastAPI(title="Nest Dashboard")
+
+
+@app.get("/device")
+async def device():
+    """Round 240x240 LCD view (point the ESP32's headless Chrome here)."""
+    return FileResponse(DEVICE_HTML)
 
 
 @app.get("/api/health")
@@ -55,7 +62,9 @@ if DIST.exists():
     app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
 
     @app.get("/")
-    async def index():
+    async def index(device: int = 0):
+        if device:
+            return FileResponse(DEVICE_HTML)
         return FileResponse(DIST / "index.html")
 
     @app.get("/{full_path:path}")

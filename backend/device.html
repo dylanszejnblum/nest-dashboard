@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=240, height=240, initial-scale=1, user-scalable=no" />
+<meta name="color-scheme" content="dark" />
+<title>Device</title>
+<style>
+  /*
+   * Round 1.28" 240x240 LCD (RGB565) view.
+   * Hard rules baked into the layout:
+   *  - All content lives inside the inscribed circle (safe disc).
+   *  - One card == one 240x240 frame. No scroll, no overflow.
+   *  - Flat saturated colors only (no gradients / no 1px hairlines).
+   *  - Bold, large type. Dark background.
+   *  - No hover-only UI. No CSS mirror/flip.
+   */
+  :root {
+    --bg: #06080f;
+    --fg: #ffffff;
+    --dim: #8a93a6;
+    --up: #21d07a;
+    --down: #ff4d4d;
+    --accent: #38bdf8;
+    --gold: #f5b301;
+    --safe: 22px; /* inset on all sides; corners handled by circular layout */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 240px;
+    height: 240px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-weight: 700;
+  }
+
+  /* The physical panel is a circle; this disc is the whole drawable area. */
+  #stage {
+    position: absolute;
+    inset: 0;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  .card {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    /* keep meaningful content away from the round edge/corners */
+    padding: var(--safe) var(--safe) 40px;
+  }
+  .card.active { display: flex; }
+
+  /* Inner safe band: narrow enough that rows near top/bottom of a
+     list still stay inside the circle. */
+  .safe { width: 178px; }
+  /* List cards center their rows vertically, so the widest point of the
+     circle is available -> a wider band stays safely inside. */
+  [data-card="markets"] .safe,
+  [data-card="dolar"] .safe { width: 190px; }
+
+  /* ---------- Clock card ---------- */
+  .greeting {
+    font-size: 15px;
+    color: var(--accent);
+    letter-spacing: .2px;
+    margin-bottom: 4px;
+  }
+  .time {
+    font-size: 62px;
+    line-height: 1;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+  }
+  .date {
+    font-size: 16px;
+    color: var(--dim);
+    margin-top: 6px;
+  }
+  .pill {
+    margin-top: 14px;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 5px 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    letter-spacing: .4px;
+  }
+  .pill.open   { background: #0c3b25; color: var(--up); }
+  .pill.closed { background: #3a1414; color: var(--down); }
+  .pill .led { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+  /* ---------- Generic card title ---------- */
+  .title {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 12px;
+  }
+  .title .cur { color: var(--gold); }
+
+  /* ---------- Markets ---------- */
+  .row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 0;
+  }
+  .row .name {
+    font-size: 15px;
+    font-weight: 700;
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .row .right { display: flex; align-items: baseline; gap: 7px; flex: none; }
+  .row .price { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .row .chg { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+
+  /* ---------- Dólar ---------- */
+  .d-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+  .d-row .d-label { font-size: 16px; font-weight: 700; color: var(--fg); }
+  .d-row .d-val { font-size: 19px; font-weight: 800; color: var(--up); font-variant-numeric: tabular-nums; }
+
+  /* ---------- Weather ---------- */
+  .w-city { font-size: 16px; font-weight: 800; color: var(--dim); letter-spacing: .5px; margin-bottom: 2px; }
+  .w-main { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .w-temp { font-size: 58px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .w-icon { font-size: 38px; }
+  .w-label { font-size: 15px; color: var(--accent); margin-top: 4px; }
+  .w-week { display: flex; justify-content: center; gap: 10px; margin-top: 14px; }
+  .w-day { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .w-dow { font-size: 12px; font-weight: 800; color: var(--dim); }
+  .w-di { font-size: 18px; }
+  .w-hi { font-size: 14px; font-weight: 800; }
+  .w-lo { font-size: 12px; font-weight: 700; color: var(--dim); }
+
+  /* ---------- News ---------- */
+  .news-head { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 12px; }
+  .news-head .led { width: 9px; height: 9px; border-radius: 50%; background: var(--down); }
+  .news-head .kicker { font-size: 13px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--down); }
+  .news-title {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .news-meta { font-size: 13px; font-weight: 700; color: var(--dim); margin-top: 10px; letter-spacing: .4px; }
+
+  /* ---------- Pager (inside the safe disc, not at the edge) ---------- */
+  .pager {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 24px;
+    display: flex;
+    justify-content: center;
+    gap: 9px;
+  }
+  .pager .pd { width: 7px; height: 7px; border-radius: 50%; background: #2a3142; }
+  .pager .pd.on { background: var(--accent); }
+
+  .loading { font-size: 15px; color: var(--dim); }
+</style>
+</head>
+<body>
+  <main id="stage">
+
+    <section class="card active" data-card="clock">
+      <div class="safe">
+        <div class="greeting" id="greeting">Hola</div>
+        <div class="time" id="time">--:--</div>
+        <div class="date" id="date">—</div>
+        <div class="pill closed" id="mkstatus"><span class="led"></span>NYSE —</div>
+      </div>
+    </section>
+
+    <section class="card" data-card="markets">
+      <div class="safe">
+        <div class="title">Markets</div>
+        <div id="markets"><div class="loading">loading…</div></div>
+      </div>
+    </section>
+
+    <section class="card" data-card="dolar">
+      <div class="safe">
+        <div class="title">Dólar <span class="cur">ARS</span></div>
+        <div id="dolar"><div class="loading">loading…</div></div>
+      </div>
+    </section>
+
+    <section class="card" data-card="weather">
+      <div class="safe">
+        <div class="w-city" id="w-city">Buenos Aires</div>
+        <div class="w-main"><span class="w-temp" id="w-temp">—°</span><span class="w-icon" id="w-icon"></span></div>
+        <div class="w-label" id="w-label">loading…</div>
+        <div class="w-week" id="w-week"></div>
+      </div>
+    </section>
+
+    <section class="card" data-card="news">
+      <div class="safe">
+        <div class="news-head"><span class="led"></span><span class="kicker">Live News</span></div>
+        <div class="news-title" id="news-title">Loading…</div>
+        <div class="news-meta" id="news-meta"></div>
+      </div>
+    </section>
+
+    <nav class="pager" id="pager">
+      <span class="pd on"></span><span class="pd"></span><span class="pd"></span>
+      <span class="pd"></span><span class="pd"></span>
+    </nav>
+  </main>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  async function getJSON(url) {
+    try {
+      var r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw 0;
+      return await r.json();
+    } catch (e) { return null; }
+  }
+
+  // ---------- Clock ----------
+  function renderClock() {
+    var now = new Date();
+    $("time").textContent = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    $("date").textContent = now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+  }
+
+  var name = "Dylan";
+  async function renderGreeting() {
+    var cfg = await getJSON("/api/config");
+    if (cfg && cfg.name) name = cfg.name;
+    var h = new Date().getHours();
+    var part = h < 6 ? "Buenas noches" : h < 12 ? "Buenos días" : h < 20 ? "Buenas tardes" : "Buenas noches";
+    $("greeting").textContent = part + ", " + name;
+  }
+
+  function renderMarketStatus() {
+    var fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York", weekday: "short",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+    var parts = {};
+    fmt.formatToParts(new Date()).forEach(function (p) { parts[p.type] = p.value; });
+    var wd = parts.weekday;
+    var mins = parseInt(parts.hour, 10) * 60 + parseInt(parts.minute, 10);
+    var weekend = wd === "Sat" || wd === "Sun";
+    var open = !weekend && mins >= 570 && mins < 960; // 9:30–16:00 ET
+    var el = $("mkstatus");
+    el.className = "pill " + (open ? "open" : "closed");
+    el.innerHTML = '<span class="led"></span>NYSE ' + (open ? "OPEN" : "CLOSED");
+  }
+
+  // ---------- Markets ----------
+  function fmtPrice(v) {
+    if (v == null || isNaN(v)) return "—";
+    if (v >= 1000) return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+    if (v >= 1) return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return v.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  }
+  async function refreshAssets() {
+    var d = await getJSON("/api/assets");
+    if (!d) return;
+    $("markets").innerHTML = d.slice(0, 5).map(function (a) {
+      var up = (a.change == null) ? true : a.change >= 0;
+      var cls = up ? "up" : "down";
+      var sign = up ? "+" : "";
+      var chg = (a.change == null || isNaN(a.change)) ? "—" : sign + a.change.toFixed(2) + "%";
+      return '<div class="row">' +
+        '<span class="name">' + a.name + '</span>' +
+        '<span class="right"><span class="price">' + fmtPrice(a.price) + '</span>' +
+        '<span class="chg ' + cls + '">' + chg + '</span></span></div>';
+    }).join("");
+  }
+
+  // ---------- Dólar ----------
+  async function refreshDolar() {
+    var d = await getJSON("/api/dolar");
+    if (!d || !d.rates || !d.rates.length) return;
+    $("dolar").innerHTML = d.rates.slice(0, 5).map(function (r) {
+      return '<div class="d-row"><span class="d-label">' + r.label + '</span>' +
+        '<span class="d-val">$' + (r.venta ? Math.round(r.venta).toLocaleString("en-US") : "—") + '</span></div>';
+    }).join("");
+  }
+
+  // ---------- Weather ----------
+  var DOW = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  async function refreshWeather() {
+    var d = await getJSON("/api/weather");
+    if (!d || d.error || !d.current) return;
+    var c = d.current;
+    $("w-city").textContent = (d.city || "").toUpperCase();
+    $("w-temp").textContent = c.temp + "°";
+    $("w-icon").textContent = c.icon || "";
+    $("w-label").textContent = c.label + " · " + c.wind + " km/h";
+    $("w-week").innerHTML = (d.daily || []).slice(0, 4).map(function (day) {
+      var dt = new Date(day.date + "T12:00:00");
+      var lbl = isNaN(dt) ? "" : DOW[dt.getDay()];
+      return '<div class="w-day"><span class="w-dow">' + lbl + '</span>' +
+        '<span class="w-di">' + day.icon + '</span>' +
+        '<span class="w-hi">' + day.max + '°</span>' +
+        '<span class="w-lo">' + day.min + '°</span></div>';
+    }).join("");
+  }
+
+  // ---------- News ----------
+  var newsPool = [], newsIdx = 0;
+  function timeAgo(s) {
+    if (!s) return "";
+    var d = new Date(s);
+    if (isNaN(d)) return "";
+    var diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 0) return "now";
+    if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+    if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+    return Math.floor(diff / 86400) + "d ago";
+  }
+  function cycleNews() {
+    if (!newsPool.length) return;
+    var h = newsPool[newsIdx % newsPool.length];
+    $("news-title").textContent = h.title;
+    $("news-meta").textContent = (h.outlet ? h.outlet.toUpperCase() + " · " : "") + timeAgo(h.seendate);
+    newsIdx++;
+  }
+  async function refreshNews() {
+    var d = await getJSON("/api/news");
+    if (!d || !d.headlines) return;
+    newsPool = d.headlines.slice(0, 12);
+  }
+
+  // ---------- Carousel ----------
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".card"));
+  var dots = Array.prototype.slice.call(document.querySelectorAll(".pager .pd"));
+  var idx = 0;
+  function show(i) {
+    idx = i;
+    cards.forEach(function (c, n) { c.classList.toggle("active", n === i); });
+    dots.forEach(function (d, n) { d.classList.toggle("on", n === i); });
+  }
+
+  // First paint
+  renderClock(); renderGreeting(); renderMarketStatus();
+  refreshAssets(); refreshDolar(); refreshWeather();
+  refreshNews().then(cycleNews);
+
+  // Optional deep-link to a single card, e.g. /device#markets
+  // (handy for the firmware to pin one view, or for testing each frame).
+  var order = cards.map(function (c) { return c.getAttribute("data-card"); });
+  var start = order.indexOf((location.hash || "").replace("#", ""));
+  show(start >= 0 ? start : 0);
+  // If a card is pinned via hash, don't auto-advance.
+  var pinned = start >= 0;
+
+  // Live polling (data stays fresh for each ~1.5s screenshot)
+  setInterval(renderClock, 10 * 1000);
+  setInterval(renderGreeting, 5 * 60 * 1000);
+  setInterval(renderMarketStatus, 60 * 1000);
+  setInterval(refreshAssets, 60 * 1000);
+  setInterval(refreshDolar, 5 * 60 * 1000);
+  setInterval(refreshWeather, 10 * 60 * 1000);
+  setInterval(function () { refreshNews(); }, 5 * 60 * 1000);
+  setInterval(cycleNews, 8 * 1000);
+
+  // Auto-advance carousel (instant switch -> every screenshot is a clean frame)
+  if (!pinned) setInterval(function () { show((idx + 1) % cards.length); }, 7 * 1000);
+})();
+</script>
+</body>
+</html>
