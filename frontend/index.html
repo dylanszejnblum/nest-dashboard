@@ -2,71 +2,57 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=240, height=240, initial-scale=1, user-scalable=no" />
     <meta name="color-scheme" content="dark" />
-    <title>Nest Dashboard</title>
+    <title>Dashboard</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <div id="app">
-      <aside class="panel col-left">
-        <header class="clock-block">
-          <div class="greeting" id="greeting">Hello</div>
-          <div class="clock" id="clock">--:--</div>
-          <div class="date" id="date">—</div>
-          <div class="mkstatus" id="mkstatus"></div>
-        </header>
+      <div class="carousel">
 
-        <section class="card markets" id="markets-card">
-          <h2>Markets</h2>
+        <section class="screen active" data-screen="clock">
+          <div class="greeting" id="greeting">Hello</div>
+          <div class="clock-time" id="clock">--:--</div>
+          <div class="clock-date" id="date">—</div>
+          <div class="mkstatus" id="mkstatus"></div>
+        </section>
+
+        <section class="screen" data-screen="markets">
+          <h2 class="screen-title">Markets</h2>
           <div class="market-list" id="market-list"></div>
         </section>
 
-        <section class="card dolar" id="dolar-card">
-          <h2>Dólar (ARS)</h2>
+        <section class="screen" data-screen="dolar">
+          <h2 class="screen-title">Dólar <span class="cur">ARS</span></h2>
           <div class="dolar-grid" id="dolar-grid"></div>
         </section>
-      </aside>
 
-      <main class="col-center">
-        <section class="card map-card">
-          <div class="map-head">
-            <span class="dot live"></span>
-            <span class="kicker">LIVE WORLD</span>
-            <span class="map-count" id="map-count"></span>
-          </div>
-          <canvas id="map-canvas"></canvas>
-        </section>
-      </main>
-
-      <aside class="panel col-right">
-        <section class="card weather" id="weather-card">
-          <h2>Buenos Aires</h2>
-          <div class="w-current">
-            <div class="w-temp" id="w-temp">—°</div>
-            <div class="w-meta" id="w-meta">loading…</div>
-          </div>
+        <section class="screen" data-screen="weather">
+          <h2 class="screen-title" id="weather-title">Buenos Aires</h2>
+          <div class="w-temp" id="w-temp">—°</div>
+          <div class="w-meta" id="w-meta">loading…</div>
           <div class="w-week" id="weather-week"></div>
         </section>
 
-        <section class="card featured" id="featured">
+        <section class="screen" data-screen="news">
           <div class="featured-head">
             <span class="dot live"></span>
-            <span class="kicker">LIVE NEWS</span>
+            <span class="kicker">Live News</span>
           </div>
           <h3 id="featured-title">Loading…</h3>
           <p class="featured-domain" id="featured-domain"></p>
         </section>
 
-        <section class="card calendar">
-          <h2 id="cal-title">—</h2>
-          <div class="cal-grid" id="cal-grid"></div>
-        </section>
-      </aside>
+      </div>
 
-      <footer class="ticker">
-        <div class="ticker-track" id="ticker"></div>
-      </footer>
+      <div class="pager" id="pager">
+        <span class="pd on"></span>
+        <span class="pd"></span>
+        <span class="pd"></span>
+        <span class="pd"></span>
+        <span class="pd"></span>
+      </div>
     </div>
 
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
